@@ -1,3 +1,5 @@
+// NB: Vendored for debugging purposes; can be moved to `main.js`
+
 /*
 * FileSaver.js
 * A saveAs() FileSaver implementation.

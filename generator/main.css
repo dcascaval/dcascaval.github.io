@@ -5,7 +5,11 @@ body {
   flex-direction: row;
 }
 
-.controls { 
+.path-point {
+  opacity: 0.5;
+}
+
+.controls {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -22,15 +26,23 @@ body {
   margin: 10px;
 }
 
-.controls label { 
+.controls div.toggle {
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  align-self: flex-start;
+  margin-top: 0px;
+}
+
+.controls label {
   margin-left: 2px;
 }
 
-.controls button { 
+.controls button {
   width: 90%;
 }
 
-.options-container { 
+.options-container {
   display: flex;
   flex-direction: wrap;
   flex-wrap: wrap;
@@ -75,7 +87,7 @@ body {
 
 circle {
   transition: r 0.02s linear;
-  transition: opacity 0.25s linear;
+  /* transition: opacity 0.02s linear; */
 }
 
 svg text {
