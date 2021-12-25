@@ -1,0 +1,272 @@
+body {
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.path-point {
+  opacity: 0.5;
+}
+
+.reference-hover {
+  background-color: hsla(0, 0%, 100%, 80%);
+  padding: 5px;
+  border-radius: 5px;
+  font-family: sans-serif;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  font-size: 12px;
+  font-family: sans-serif;
+  height: 100vh;
+  padding-right: 10px;
+  align-items: center;
+}
+
+.controls div {
+  display: flex;
+  flex-direction: column-reverse;
+  margin: 10px;
+}
+
+.controls label {
+  margin-left: 2px;
+}
+
+.controls button {
+  width: 90%;
+}
+
+.options-container {
+  display: flex;
+  flex-direction: wrap;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid black;
+}
+
+.multi-vector-layout {
+  display: flex;
+  flex-direction: wrap;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+}
+
+.spaced {
+  font-size: 100px;
+  letter-spacing: 0.6em;
+}
+
+.vec-layer {
+  position: relative;
+  top: 0px;
+  left: 0px;
+}
+
+.three-layer {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  opacity: 0.5;
+}
+
+.grad-bg {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  background: radial-gradient(
+    circle,
+    rgb(50, 50, 50) 0%,
+    rgb(25, 25, 25) 50%,
+    rgb(0, 0, 0) 100%
+  );
+}
+
+.handle:hover {
+  fill: red !important;
+}
+
+circle {
+  transition: r 0.02s linear;
+  /* transition: opacity 0.02s linear; */
+}
+
+svg text {
+  font-family: sans-serif;
+  font-size: 12px;
+}
+
+select {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+}
+
+.explain {
+  position: absolute;
+  top: 20px;
+  width: 35vw;
+  right: 50px;
+  font-size: 16px;
+  line-height: 1.2em;
+  user-select: text;
+}
+
+.parameter-display {
+  margin-bottom: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-right: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  font-family: "Monaco", monospace;
+  font-size: 12px;
+}
+
+.parameter {
+  display: flex;
+  margin-bottom: 5px;
+}
+
+.parameter-slider {
+  background-color: rgba(0, 0, 0, 0.6);
+  align-self: center;
+  height: 1px;
+  border-top: 5px solid white;
+  border-bottom: 5px solid white;
+}
+
+.parameter-clickbox {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  z-index: 2;
+
+  /* -10px from our height, +1 px from parent's height*/
+  transform: translate(-10px, -9px);
+}
+
+.parameter-knob {
+  width: 10px;
+  height: 10px;
+  background-color: hsl(200, 50%, 60%);
+  box-sizing: border-box;
+  border: 1px solid white;
+  border-radius: 50%;
+  transform: translate(5px, 5px);
+}
+
+.parameter-name {
+  text-align: right;
+  user-select: none;
+  margin-right: 10px;
+  margin-left: 10px;
+  transform: translateY(2px);
+}
+
+.editor-frame {
+  position: relative;
+  width: 100%;
+  flex-grow: 4;
+}
+
+.program-container {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 10px);
+  min-width: 660px;
+  /* contain: strict; */
+}
+
+button {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  height: 4ch;
+}
+
+.parameter input {
+  width: 60px;
+  margin-right: 10px;
+  font-family: "Monaco", monospace;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  text-align: right;
+  font-size: 11px;
+}
+
+/** Textbox builder **/
+
+.command-overlay {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2;
+}
+
+.search-box {
+  position: absolute;
+  width: 400px;
+  height: 64px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  background-color: #eee;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+.command-box {
+  outline: none;
+  background-color: transparent;
+  width: 95%;
+  height: 100%;
+  border: none;
+  font-size: 48px;
+  opacity: 0.9;
+  padding-left: 12px;
+}
+
+.command-box::selection {
+  background: #222;
+  color: #eee;
+}
+
+.search-list {
+  position: absolute;
+  width: 400px;
+  background-color: #eee;
+  font-size: 24px;
+
+  border-top: 1px solid #222;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, 32px);
+}
+
+.search-list div {
+  padding: 4px 4px 4px 12px;
+}
+
+.search-list .selected {
+  background-color: #bbb;
+}
+
+.example-menu {
+  position: absolute;
+  z-index: 2;
+  top: 0px;
+  left: 0px;
+}

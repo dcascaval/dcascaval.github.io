@@ -1,1 +1,0 @@
-This bundle contains the implementation and demo of our CAD system, compiled to run on the web. To run, simply open `index.html` in a web browser. We have tested it on updated versions of Firefox, Chrome, and Edge on Windows, Mac, and Linux systems, and as a result recommend using one of these to avoid possible compatibility issues.
