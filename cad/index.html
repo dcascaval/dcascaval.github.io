@@ -4,358 +4,365 @@
 <head>
   <title>Lineage-Based CAD Referencing</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <link rel="stylesheet" data-name="vs/editor/editor.main"
+    href="vs/editor/editor.main.css" />
   <link rel="stylesheet" href="index.css" />
-  <link rel="stylesheet" href="blog.css" />
-  <link rel="stylesheet" data-name="vs/editor/editor.main" href="vs/editor/editor.main.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
-  <script>window.global = window;</script>
-  <script src="./js/nlopt.js"></script>
 </head>
 
 <body>
-
-  <script>var require = { paths: { vs: 'vs/' } };</script>
-  <script src="vs/loader.js"></script>
-  <script src="vs/editor/editor.main.nls.js"></script>
-  <script src="vs/editor/editor.main.js"></script>
-
-  <!-- <script type="text/javascript" src="./js/monet-opt-library.js"></script>
-  <script type="text/javascript" src="./js/monet-opt-loader.js"></script>
-  <script type="text/javascript" src="./js/monet-opt.js"></script> -->
-
-
-
-  <div id="blog">
-    <h1>Elodin: A Language for CAD References</h1>
-
-    <p>Parametric CAD is fundamentally built on operations that <em>select</em> an object (an edge or face) and
-      <em>operate</em> on it (chamfering, extruding, etc). A major robustness issue in parametric CAD is the problem of
-      making these selections,
-      as when users edit parameters early in the parametric history, references may fail to resolve for operations
-      downstream as referenced objects disappear or jump around after parametric changes. Our recent <a
-        href="#">paper</a> proposes a
-      domain-specific programming language which users can use to make selections that don't break unexpectedly, even as
-      object topologies change. In this article we'll look at what causes reference breakage, how existing CAD systems
-      attack the issue, why it's particularly useful to solve now, and introduce our solution.
-    </p>
-
-    <h2>Referencing Breakage</h2>
-
-    The primary cause of reference failure is a <em>topological change</em>; when a
-    parameter change causes the object we're modeling to have either a different number of
-    vertices, edges, and faces (topological entities) or to have its current entities
-    connected to each other in a different way. If we imagine each entity in the model
-    having an ID (say, <code>Face19</code>), a topological change might cause Face19 to disappear (if
-    we have less than 19 faces), or to jump around randomly (if a different face happens
-    to now be the 19th). In some cases Face19 might exist but in a different form, as the
-    parameter change might have split it into multiple faces.
-
-    <div class="caption">
-      <img src="images/topological-changes.png" alt="Topological changes"></img>
-      <p>Topological changes due to continuous parameter changes in CAD models. Image: Schulz et al, <em>Interactive
-          Design Space Exploration and Optimization for CAD Models</em>, 2017</p>
-    </div>
-
-    <h3> Approaches: Entity-Matching </h3>
-
-    Most parametric CAD systems (think Solidworks, NX, etc) use something called an
-    <strong>entity-matching</strong> based system to identify the face after this
-    transition. They keep track of the model state where the original selection was made.
-    Usually the selection is made by clicking on the object, meaning the geometry was
-    generated with a particular parameter configuration. They compare this state to the
-    <em>new</em> geometry after the parameter change, and usematching heuristics (read:
-    guesses) to compare elements and determine which <em>new</em> entities correspond to
-    which <em>old</em> entities. This correspondence is used to then resolve the
-    references in the <em>new</em> configuration, by replacing the old referred element
-    with the new ones that correspond to it.
-
-
-    <div class="caption">
-      <div class="image-row-2">
-        <img src="images/entity-matching-faces.png" alt=""></img>
-        <img src="images/entity-matching-names.png" alt=""></img>
+  <script>
+    window.global = window;
+    var require = { paths: { vs: './vs' } };
+  </script>
+  <script src="./js/nlopt.js"></script>
+  <script type="text/javascript" src="./js/elodin-fastopt-library.js"></script>
+  <script type="text/javascript" src="./js/elodin-fastopt-loader.js"></script>
+  <script type="text/javascript" src="./js/elodin-fastopt.js"></script>
+  
+    <div id="blog">
+      <h1>Elodin: A Language for CAD References</h1>
+  
+      <p>Parametric CAD is fundamentally built on operations that <em>select</em> an object
+      (an edge or face) and
+        <em>operate</em> on it (chamfering, extruding, etc). A major robustness issue in
+        parametric CAD is the problem of making these selections, as when users edit
+        parameters early in the parametric history, references may fail to resolve for
+        operations downstream as referenced objects disappear or jump around after
+        parametric changes. Our recent <a href="#">paper</a> proposes a domain-specific
+        programming language which users can use to make selections that don't break
+        unexpectedly, even as object topologies change. In this article we'll look at what
+        causes reference breakage, how existing CAD systems attack the issue, why it's
+        particularly useful to solve now, and introduce our solution.
+      </p>
+  
+      <h2>Referencing Breakage</h2>
+  
+      <p>The primary cause of reference failure is a <em>topological change</em>; when a
+      parameter change causes the object we're modeling to have either a different number of
+      vertices, edges, and faces (topological entities) or to have its current entities
+      connected to each other in a different way. If we imagine each entity in the model
+      having an ID (say, <code>Face19</code>), a topological change might cause Face19 to
+      disappear (if we have less than 19 faces), or to jump around randomly (if a different
+      face happens to now be the 19th). In some cases Face19 might exist but in a different
+      form, as the parameter change might have split it into multiple faces.</p>
+  
+      <div class="caption">
+        <img src="images/topological-changes.png" alt="Topological changes"></img>
+        <p>Topological changes due to continuous parameter changes in CAD models. Image:
+        Schulz et al, <em>Interactive Design Space Exploration and Optimization for CAD
+        Models</em>, 2017</p>
       </div>
-      <p>Heuristic matching of entities after parameter changes cause topological changes.Image: Farjana et al,
-        <em>Mechanisms of Persistent Identification of Topological Entities in
-          CAD Systems</em>, 2018
-      </p>
-    </div>
-
-    Unfortunately, these heuristics are imperfect. While there's are many cases where they
-    are correct, and decades of fine-tuning have made them quite capable, there are also
-    many cases where the correspondence fails to find the correct element, or otherwise
-    results in surprising behavior. Fundamentally, this <em>has</em> to be the case: as a
-    user, when we click on an element in one generated version of the model, we aren't
-    specifying which elements we want selected in other versions. And... this is pretty
-    much fine. When an engineer updates a CAD model parameter, they'll  see the breakage,
-    and painstakingly track it down - sometimes it's a spurious error, sometimes something
-    just needs to be reselected. Because edits are made manually, edits can be fixed
-    manually too. Heuristics are usually a time-save, not a dealbreaker <a
-    class="footnote-link" id="link1" href="#note1">1</a>.
-
-
-    <h3> Motivation: Model Optimization </h3>
-
-    <div class="caption">
-      <img src="images/model-optimization-1.png" alt="Model Optimization"></img>
-      <p>
-        Optimizing a model's material and structural performance in response to physical
-        loads. Image: Schulz et al, <em>Interactive Design Space Exploration and
-        Optimization for CAD Models</em>, 2017
-      </p>
-    </div>
-
-    The story changes when we want to <em>optimize</em> over a CAD model: by setting up an
-    automated search through the entire available parameter space to minimize some cost
-    function, like minimizing weight or volume while maintaining structure, or optimizing
-    in response to external loads or manufacturing concerns. Today most such
-    optimizations are done purely on a finite-element mesh of some form (rather than the
-    parameter space of the model), and the results of this optimization need to be
-    manually reconstructed back into a usable CAD model. Optimizing over the parameter
-    space directly is an application fundamentally enabled by parametric modeling in a way
-    that direct modeling can never compete with, but there are issues with taking
-    advantage of it: namely, the model might break on most of the parameter space. If this
-    throws an error, it precludes the use of an automatic optimizer, which might generate
-    the model hundreds or thousands of times. If it doesn't, then we often get malformed
-    geometry where the optimizer discovered a way to minimize the cost function by freeing
-    us from the shackles of having our model be physically possible. So we'd like a way to
-    specify references in advance, without manually modifying them after changes, knowing
-    that they won't break across parameters.
-
-    <h3>Approaches: State-based selection </h3>
-
-    <div class="caption">
-      <div class="image-row-2">
-        <img src="images/state-queries.jpg" alt="State-based selection"></img>
-        <img src="images/cadquery-selector.png" alt=""></img>
+  
+      <h3> Approaches: Entity-Matching </h3>
+  
+      <p>Most parametric CAD systems (think Solidworks, NX, etc) use something called an
+      <strong>entity-matching</strong> based system to identify the face after this
+      transition. They keep track of the model state where the original selection was made.
+      Usually the selection is made by clicking on the object, meaning the geometry was
+      generated with a particular parameter configuration. They compare this state to the
+      <em>new</em> geometry after the parameter change, and usematching heuristics (read:
+      guesses) to compare elements and determine which <em>new</em> entities correspond to
+      which <em>old</em> entities. This correspondence is used to then resolve the
+      references in the <em>new</em> configuration, by replacing the old referred element
+      with the new ones that correspond to it.</p>
+  
+  
+      <div class="caption">
+        <div class="image-row-2">
+          <img src="images/entity-matching-faces.png" alt=""></img>
+          <img src="images/entity-matching-names.png" alt=""></img>
+        </div>
+        <p>
+          Heuristic matching of entities after parameter changes cause topological
+          changes.Image: Farjana et al,
+          <em>Mechanisms of Persistent Identification of Topological Entities in CAD
+          Systems</em>, 2018
+        </p>
       </div>
-      <p>
-        Left: queries for geometry expressed on relations between geometric state at a given parameter point. 
-        Right: A selector in the CADQuery DSL.
-      </p>
-    </div>
+  
+      Unfortunately, these heuristics are imperfect. While there's are many cases where they
+      are correct, and decades of fine-tuning have made them quite capable, there are also
+      many cases where the correspondence fails to find the correct element, or otherwise
+      results in surprising behavior. Fundamentally, this <em>has</em> to be the case: as a
+      user, when we click on an element in one generated version of the model, we aren't
+      specifying which elements we want selected in other versions. And... this is pretty
+      much fine. When an engineer updates a CAD model parameter, they'll  see the breakage,
+      and painstakingly track it down - sometimes it's a spurious error, sometimes something
+      just needs to be reselected. Because edits are made manually, edits can be fixed
+      manually too. Heuristics are usually a time-save, not a dealbreaker.<a
+      class="footnote-link" id="link1" href="#note1">1</a>
+  
+      <h3> Motivation: Model Optimization </h3>
+  
+      <div class="caption">
+        <img src="images/model-optimization-1.png" alt="Model Optimization"></img>
+        <p>
+          Optimizing a model's material and structural performance in response to physical
+          loads. Image: Schulz et al, <em>Interactive Design Space Exploration and
+          Optimization for CAD Models</em>, 2017
+        </p>
+      </div>
+  
+      The story changes when we want to <em>optimize</em> over a CAD model: by setting up an
+      automated search through the entire available parameter space to minimize some cost
+      function, like minimizing weight or volume while maintaining structure, or optimizing
+      in response to external loads or manufacturing concerns. Today most such
+      optimizations are done purely on a finite-element mesh of some form (rather than the
+      parameter space of the model), and the results of this optimization need to be
+      manually reconstructed back into a usable CAD model. Optimizing over the parameter
+      space directly is an application fundamentally enabled by parametric modeling in a way
+      that direct modeling can never compete with, but there are issues with taking
+      advantage of it: namely, the model might break on most of the parameter space. If this
+      throws an error, it precludes the use of an automatic optimizer, which might generate
+      the model hundreds or thousands of times. If it doesn't, then we often get malformed
+      geometry where the optimizer discovered a way to minimize the cost function by freeing
+      us from the shackles of having our model be physically possible. So we'd like a way to
+      specify references in advance, without manually modifying them after changes, knowing
+      that they won't break across parameters.
+  
+      <h3>Approaches: State-based selection </h3>
+  
+      <div class="caption">
+        <div class="image-row-2">
+          <img src="images/state-queries.jpg" alt="State-based selection"></img>
+          <img src="images/cadquery-selector.png" alt=""></img>
+        </div>
+        <p>
+          Left: queries for geometry expressed on relations between geometric state at a given parameter point. 
+          Right: A string-selector in the CADQuery DSL which selects a top face, shells it, selects the new shell 
+          perimeter, and chamfers the inner edges of it.
+        </p>
+      </div>
+  
+      Parametric modeling or procedural generation tools based on code (e.g. Grasshopper,
+      CADQuery, etc), rather than graphically clicking on elements, tend to just leave the
+      referencing problem up to the user: when you want to select a face of an object, that
+      object gives you a list of faces, and you have to write code that selects the right
+      face by looking at the geomtries of all the faces and making a decision. Usually this
+      involves saying something like "get me the face in this direction, that's more to the
+      right than the other faces in this direction". This can break if we rotate or mirror
+      the object, so now the face is "more to the left", so we might instead use "give me
+      the face closest to this point", and program the position of the point such that it
+      moves to get us the face we want. While this can work, it's painstaking (to figure out
+      what the position function should be so that it works over all parameters), prone to
+      errors (forgetting to update the mechanism by which we're selecting things when we
+      change the model) and duplicative (we already did the math <em>somewhere</em> to
+      compute the location of the face when we made the face to begin with, why do we need
+      to do it again?). So this method of selecting based off of the current geometric
+      <em>state</em> is one way of accomplishing the goal, but having reference operations
+      be brutally difficult isn't that appealing for CAD applications where these operations
+      are so common<a class="footnote-link" id="link2" href="#note2">2</a>.
+  
+      <br><br>
+  
+      Other program-based modeling systems (e.g. OpenSCAD) sidestep the problem entirely, by
+      disallowing references. This allows the internal representation of geometry to take on
+      more efficient properties since it doesn't need to track explicit entities and can
+      instead use a different representation (e.g. SDFs, like <a href="https://www.mattkeeter.com/projects/antimony/3/">Antimony</a> and its successor <a href="https://libfive.com/">LibFive</a> )
+      which makes traditionally-expensive operations like Union and Difference very cheap.
+      This is an interesting direction to explore, but it poses a quandary for CAD users,
+      because disallowing references precludes both the traditional way of thinking about a
+      model and many basic operations, such as chamfers, from being packaged as functions
+      you can call. It also precludes applying constraints on generated geometry, since you
+      want to be able to refer to elements to state that they must be some distance apart,
+      or parallel, or what have you.
+  
+      <!-- https://wiki.freecad.org/Topological_naming_problem -->
+      <!-- https://forum.freecad.org/viewtopic.php?t=27278 -->
+  
+  
+      <h2>Our approach: Reference using Lineage Queries</h2>
+  
+      Instead of comparing geometric state to find elements, we take the same approach of
+      "querying" and instead select elements by their <em>lineage</em>. Abstractly, lineage
+      is like a dependency graph: if shapes A and B are subtracted from each other to get C,
+      C has lineage from both A and B. What's more, in this case every <em>element</em> of C
+      comes from some combination of the elements of A and B: vertices are either direct
+      copies of vertices from A or B, or formed by a new intersection between two particular
+      edges of A and B. So all of these sub-elements have lineage between each other too,
+      and in general we can define some rules for which output elements derive from which
+      input elements for most CAD operations. It's this fine-grained lineage that allows us
+      to make selections.
+  
+      <div class="figure" id="two-square-lineage-simple"></div>
+  
+      To query a specific point using the lineage, we'll construct a query:
+  
+      <code class="block">
+        fromAll(a.bottom, b.left)
+      </code>
+  
+      This will select a point that has lineage from both of those edges; which will only
+      happen if the point is an intersection. We'll use it like so:
+  
+      <code class="block">
+        point = query(c.points, fromAll(a.bottom, b.left))
+      </code>
+  
+      In this case, <code>point</code> is still a <em>set</em> of elements, since (1) it's
+      possible there could be no such point, if A and B don't intersect, and (2) the lineage
+      system doesn't inherently know that there is only ever at most 1 element in this case.
+      So we have to use an additional assertion to say that we expect the set to be of size
+      1, and that we're at an invalid point in our parameter space if it isn't:
+  
+      <code class="block">
+        point = single(query(c.points, fromAll(a.bottom, b.left)))
+      </code>
+  
+      In this case, we could get the same point using a different query, looking for lineage
+      between <code>a.bottom</code> and <code>B</code>, since <code>a.bottom</code>
+      intersects <code>B</code> in only the point we care about:
+  
+      <code class="block">
+        point = query(c.points, fromAll(a.bottom, B))
+      </code>
+  
+      However, these two queries return different results when we make <code>A</code>
+      wider (by increasing the <code>widthA</code> parameter in the example above), and
+      <code>a.bottom</code> intersects multiple edges of <code>B</code>. The original
+      query will only return the one point, while this one returns two:
+  
+      <div class="figure" id="two-square-lineage-wide"></div>
 
-    Parametric modeling or procedural generation tools based on code (e.g. Grasshopper,
-    CADQuery, etc), rather than graphically clicking on elements, tend to just leave the
-    referencing problem up to the user: when you want to select a face of an object, that
-    object gives you a list of faces, and you have to write code that selects the right
-    face by looking at the geomtries of all the faces and making a decision. Usually this
-    involves saying something like "get me the face in this direction, that's more to the
-    right than the other faces in this direction". This can break if we rotate or mirror
-    the object, so now the face is "more to the left", so we might instead use "give me
-    the face closest to this point", and program the position of the point such that it
-    moves to get us the face we want. While this can work, it's painstaking (to figure out
-    what the position function should be so that it works over all parameters), prone to
-    errors (forgetting to update the mechanism by which we're selecting things when we
-    change the model) and duplicative (we already did the math <em>somewhere</em> to compute the
-    location of the face when we made the face to begin with, why do we need to do it
-    again?). So this method of selecting based off of the current geometric <em>state</em> is one
-    way of accomplishing the goal, but having reference operations be brutally difficult
-    isn't that appealing for CAD applications where these operations are so common
-    <a class="footnote-link" id="link2" href="#note2">2</a>.
+      <h3>Transitivity</h3>
+  
+      <div class="figure" id="two-square-transitive"></div>
+  
+      Using this type of lineage query is different from specifying an exact global history.
+      To see why, consider if we modified the program to rotate <code>B</code> after
+      creating it, before then subtracting from <code>A</code>. In this case, even though
+      there is a new polygon <code>D</code> in between our query argument (<code>B</code>)
+      and the set we're querying (the points of <code>C</code>), the query still works,
+      because it follows the lineage from B through D and then to A. In this sense, lineage
+      queries are <strong>transitive</strong>, which makes them flexible: often when you
+      edit the model upstream, downstream queries remain unchanged.
+  
+      <h3>Containment</h3>
 
-    <br><br>
+      Consider a program that makes a sideways "T" using two rectangles:
+      <code class="block">
+        A = Rectangle(...) // Tall, skinny
+        B = Rectangle(...) // Short, wide
+        C = Union(A, B)
+      </code>
 
-    Other program-based modeling systems (e.g. OpenSCAD) sidestep the problem entirely, by
-    disallowing references. This allows the internal representation of geometry to take on
-    more efficient properties since it doesn't need to track explicit entities and can
-    instead use a different representation (e.g. SDFs, like <a href="">Antimony</a> does)
-    which makes traditionally-expensive operations like Union and Difference very cheap.
-    This is an interesting direction to explore, but it poses a quandary for CAD users,
-    because disallowing references precludes both the traditional way of thinking about a
-    model and many basic operations, such as chamfers, from being packaged as functions
-    you can call. It also precludes applying constraints on generated geometry, since you
-    want to be able to refer to elements to state that they must be some distance apart,
-    or parallel, or what have you.
-
-    https://wiki.freecad.org/Topological_naming_problem
-    https://forum.freecad.org/viewtopic.php?t=27278
-
-
-    <h2>Our approach: Reference using Lineage Queries</h2>
-
-    Instead of comparing geometric state to find elements, we take the same approach of
-    "querying" and instead select elements by their <em>lineage</em>. Abstractly, lineage
-    is like a dependency graph: if shapes A and B are subtracted from each other to get C,
-    C has lineage from both A and B. What's more, in this case every <em>element</em> of C
-    comes from some combination of the elements of A and B: vertices are either direct
-    copies of vertices from A or B, or formed by a new intersection between two particular
-    edges of A and B. So all of these sub-elements have lineage between each other too,
-    and in general we can define some rules for which output elements derive from which
-    input elements for most CAD operations. It's this fine-grained lineage that allows us
-    to make selections.
-
-    [figure: two-square lineage (simple)]
-
-    To query a specific point using the lineage, we'll construct a query:
-
-    <code class="block">
-      fromAll(a.bottom, b.left)
-    </code>
-
-    This will select a point that has lineage from both of those edges; which will only
-    happen if the point is an intersection. We'll use it like so:
-
-    <code class="block">
-      point = query(c.points, fromAll(a.bottom, b.left))
-    </code>
-
-    In this case, <code>point</code> is still a <em>set</em> of elements, since (1) it's
-    possible there could be no such point, if A and B don't intersect, and (2) the lineage
-    system doesn't inherently know that there is only ever at most 1 element in this case.
-    So we have to use an additional assertion to say that we expect the set to be of size
-    1, and that we're at an invalid point in our parameter space if it isn't:
-
-    <code class="block">
-      point = single(query(c.points, fromAll(a.bottom, b.left)))
-    </code>
-
-    In this case, we could get the same point using a different query, looking for lineage
-    between <code>a.bottom</code> and <code>B</code>, since <code>a.bottom</code>
-    intersects <code>B</code> in only the point we care about:
-
-    <code class="block">
-      point = query(c.points, fromAll(a.bottom, B))
-    </code>
-
-    However, these two queries return different results when we make <code>A</code> wider,
-    and <code>a.bottom</code> intersects multiple edges of <code>B</code>. The original
-    query will only return the one point, while this one returns two:
-
-    [figure: two-square A-wide]
-
-    <h3>Transitivity</h3>
-
-    [figure: two-square transitive]
-
-    Using this type of lineage query is different from specifying an exact global history.
-    To see why, consider if we modified the program to rotate <code>B</code> after
-    creating it, before then subtracting from <code>A</code>. In this case, even though
-    there is a new polygon <code>D</code> in between our query argument (<code>B</code>)
-    and the set we're querying (the points of <code>C</code>), the query still works,
-    because it follows the lineage from B through D and then to A. In this sense, lineage
-    queries are <strong>transitive</strong>, which makes them flexible: often when you
-    edit the model upstream, downstream queries remain unchanged.
-
-    <h3>Containment</h3>
-
-    [figure: tetris-containment ]
-
-    In some cases we want to select a single element (call it the edge <code>F</code>, in
-    <code>C</code>'s edges), but there might not be a set of ancestors that returns
-    uniquely return <code>F</code>: if we were to use <code>query(c.edges,
-    from(A.right))</code> here, we would get both edges <code>E</code> and
-    <code>F</code>. Using <code>fromAll(A.right, B.bottom)</code> returns none of C's
-    edges at all; but if applied to <code>C.points</code> will return the intersection
-    point between the two. We want to distinguish between <code>E</code> and
-    <code>F</code>, which we can do because they <em>contain</em> elements (the points, in this
-    case) that have different lineage. We compose the query:
-
-    <code class="block">
-      from(A.right) and contains(from(B.bottom))
-    </code>
-
-    This returns any element that both itself has lineage from <code>A.right</code>, and
-    <em>also</em> contains an element that has lineage from <code>B.bottom</code>. This
-    eliminates <code>E</code> handily. In this particular configuration, the
-    <code>from(A.right)</code> term isn't even required; though eliding it would yield
-    multiple edges if <code>B</code> were to be shifted to the left so far that the object
-    became a cross.
-
-
-    <h3>Assertions</h3> 
-
-    We also mentioned [link] optimizing a model's parameters, or using a model as a
-    re-usable component. Program-based models make this possible, but we need to bound the
-    parameter space so that we don't end up accidentally creating invalid geometry all the
-    time. This is where assertions come in. We could create bounds directly on our
-    parameters, but that can be tedious and sometimes involves a lot of math, when instead
-    often what we want to "bound" is a given topology.
-
-    <br><br>
-
-    We saw an example of an assertion, <code>single()</code>, which guarantees that the
-    result of a query contains a single element, or causes the program to fail. This is an
-    umabiguous signal to an optimizer or external user that the inputs to the program are
-    infeasible; either we've recieved zero results or more than one.
-
-    <br><br>
+  
+      <div class="figure" id="tetris-containment"></div>
+  
+      In some cases we want to select a single element (the green lower edge, <code>F</code>, in
+      <code>C</code>'s edges), but there might not be a set of ancestors that returns
+      uniquely return <code>F</code>: if we were to use <code>query(c.edges,
+      from(A.right))</code> here, we would the red upper edge <code>E</code> and
+      <code>F</code>. Using <code>fromAll(A.right, B.bottom)</code> returns none of C's
+      edges at all; but if applied to <code>C.points</code> will return the intersection
+      point between the two. We want to distinguish between <code>E</code> and
+      <code>F</code>, which we can do because they <em>contain</em> elements (the points, in this
+      case) that have different lineage. We compose the query:
+  
+      <code class="block">
+        from(A.right) and contains(from(B.bottom))
+      </code>
+  
+      This returns any element that both itself has lineage from <code>A.right</code>, and
+      <em>also</em> contains an element that has lineage from <code>B.bottom</code>. This
+      eliminates <code>E</code> handily. In this particular configuration, the
+      <code>from(A.right)</code> term is required because without it we would also get the bottom
+      and right edges of <code>B</code>, since those also contain elements with lineage from 
+      <code>B.bottom</code>.
+  
+  
+      <h3>Assertions</h3> 
+  
+      We also mentioned [link] optimizing a model's parameters, or using a model as a
+      re-usable component. Program-based models make this possible, but we need to bound the
+      parameter space so that we don't end up accidentally creating invalid geometry all the
+      time. This is where assertions come in. We could create bounds directly on our
+      parameters, but that can be tedious and sometimes involves a lot of math, when instead
+      often what we want to "bound" is a given topology.
+  
+      <br><br>
+  
+      We saw an example of an assertion, <code>single()</code>, which guarantees that the
+      result of a query contains a single element, or causes the program to fail. This is an
+      umabiguous signal to an optimizer or external user that the inputs to the program are
+      infeasible; either we've recieved zero results or more than one.
+  
+      <br><br>
+        
+      Lineage can make constraining input argument shapes so that the results never change
+      topology much easier: rather than reasoning out that with a given constraint then two
+      objects won't overlap, we can assert that no elements with a particular lineage exist,
+      i.e.
+  
+      <code class="block">
+        empty(query(c.points, from(d,e)))
+      </code>
+  
+      The big advantages of this are that (1) it saves redundant math from intersections that have already been computed
+      and (2) these assertions can be inserted after the fact, making reasoning easier.
+  
+      <!-- <h3>Worked Example: Lineage in Practice</h3> -->
+      <!-- ~~~~ ??? ~~~~ -->
+  
+      <h3>Limitations</h3>
+  
+      The biggest challenge to this method of referencing is that implementing it robustly
+      requires kernel support - a black box kernel that doesn't provide lineage information
+      at a very fine granularity can't be used, and reverse-engineering lineage on a
+      per-operation basis is both expensive and brittle. As a result, we've implemented our
+      own kernel operations, and the tool provided can support a subset of "2.5D" geometry,
+      where topology-modifying operations are performed entirely in 2D and the results are
+      extruded or revolved into solids. It turns out this can model a reasonable class of
+      real-world objects, but without support for fully-3D boolean operations it can't model
+      everything. Thankfully, implementing lineage on top of such operations is a direct
+      extension of the 2D-case; unlike the intersection math itself.
+  
+      <br><br>
+  
+      The primary <em>referencing</em> limitation is the inability to stably reference points
+      resulting from intersections of splines or other complex curves. While this geometry
+      can be represented, these complex curves can intersect and form many points (up to 9,
+      in the case of cubic bezier patches), and it's unclear how to order this set in such a
+      way as to get a stable reference. As a result, despite the fact that the intersections
+      can be computed, the points resulting from intersecting two splines all have identical
+      lineage, and are only usable as a complete set. We have to fall back to the geometric
+      state-based methods we mentioned earlier to get any more specific point than that.
+      However, assertions still work - so if we know the splines should only ever intersect
+      in one place, <code>single()</code> still applies.
+  
+  
+      <br>
+      <hr>
+      <br>
+  
       
-    Lineage can make constraining input argument shapes so that the results never change
-    topology much easier: rather than reasoning out that with a given constraint then two
-    objects won't overlap, we can assert that no elements with a particular lineage exist,
-    i.e.
-
-    <code class="block">
-      empty(query(c.points, from(d,e)))
-    </code>
-
-    The big advantages of this are that (1) it saves redundant math from intersections that have already been computed
-    and (2) these assertions can be inserted after the fact, making reasoning easier.
-
-    <h3>Worked Example: Lineage in Practice</h3>
-
-    ~~~~ ??? ~~~~
-
-    <h3>Limitations</h3>
-
-    The biggest challenge to this method of referencing is that implementing it robustly
-    requires kernel support - a black box kernel that doesn't provide lineage information
-    at a very fine granularity can't be used, and reverse-engineering lineage on a
-    per-operation basis is both expensive and brittle. As a result, we've implemented our
-    own kernel operations, and the tool provided can support a subset of "2.5D" geometry,
-    where topology-modifying operations are performed entirely in 2D and the results are
-    extruded or revolved into solids. It turns out this can model a reasonable class of
-    real-world objects, but without support for fully-3D boolean operations it can't model
-    everything. Thankfully, implementing lineage on top of such operations is a direct
-    extension of the 2D-case; unlike the intersection math itself.
-
-    <br><br>
-
-    The primary <em>referencing</em> limitation is the inability to stably reference points
-    resulting from intersections of splines or other complex curves. While this geometry
-    can be represented, these complex curves can intersect and form many points (up to 9,
-    in the case of cubic bezier patches), and it's unclear how to order this set in such a
-    way as to get a stable reference. As a result, despite the fact that the intersections
-    can be computed, the points resulting from intersecting two splines all have identical
-    lineage, and are only usable as a complete set. We have to fall back to the geometric
-    state-based methods we mentioned earlier to get any more specific point than that.
-    However, assertions still work - so if we know the splines should only ever intersect
-    in one place, <code>single()</code> still applies.
-
-
-    <br>
-    <hr>
-    <br>
-
-    
-
-    <div class="footnotes">
-      <ol>
-      <li class="footnote" id="note1">
-      This heuristic also subtly implies that CAD models are never packaged up as
-      templates and re-used, since in that case the original author would be responsible
-      for verifying the model doesn't break. Features such as Revit's <a
-      href="">Families</a> exist where people build re-usable templates, and it suddenly
-      becomes very important to constantly be changing the parameters of one's geometry to
-      make sure we're not making any selections that implicitly rely on a given specific
-      geometry to work. <a class="back" href="#link1">back</a>
-      </li>
-
-      <li class="footnote" id="note2">
-      That said, CADQuery does by far the most to help the user here; by (1) being the
-       only such tool to directly acknowledge the issue and (2) packaging these selection
-       operations in a small domain-specific string language where the user can state such
-       state-based queries concisely. This is a great step and cannot be understated, but
-       there's also room to go even farther. <a class="back" href="#link2">back</a>
-      </li>
-    </ol>
+  
+      <div class="footnotes">
+        <ol>
+        <li class="footnote" id="note1">
+        This heuristic also subtly implies that CAD models are never packaged up as
+        templates and re-used, since in that case the original author would be responsible
+        for verifying the model doesn't break. Features such as Revit's <a
+        href="https://www.autodesk.com/autodesk-university/article/Revit-Families-Step-Step-Introduction-2018">Families</a> exist where people build re-usable templates, and it suddenly
+        becomes very important to constantly be changing the parameters of one's geometry to
+        make sure we're not making any selections that implicitly rely on a given specific
+        geometry to work. <a class="back" href="#link1">back</a>
+        </li>
+  
+        <li class="footnote" id="note2">
+        That said, CADQuery does by far the most to help the user here; by (1) being the
+         only such tool to directly acknowledge the issue and (2) packaging these selection
+         operations in a small domain-specific string language where the user can state such
+         state-based queries concisely. This is a great step and cannot be understated, but
+         there's also room to go even farther. <a class="back" href="#link2">back</a>
+        </li>
+      </ol>
+      </div>
     </div>
-  </div>
-  </div>
-</body>
+    </div>
+  </body>
 
 </html>
-
