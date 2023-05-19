@@ -1,0 +1,81 @@
+body {
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: grey;
+  background: #333;
+  min-height: 100vh;
+  font-family: sans-serif;
+  color: #999;
+}
+
+label[for="fileInput"] {
+  cursor: pointer;
+  display: flex;
+  align-self: center;
+  margin: auto;
+  flex-direction: column;
+  border: #999 solid 1px;
+  border-radius: 20px;
+  padding: 20px;
+}
+
+#fileInput {
+  display: none;
+}
+
+label p {
+  color: #ddd;
+  margin: 0;
+  font-size: 20px;
+  text-align: center;
+}
+
+label br {
+  padding-top: 10px;
+}
+
+label p.caption {
+  font-size: 14px;
+}
+
+label select {
+  margin-left: 8px;
+}
+
+.footer {
+  color: #fff;
+  min-height: 50px;
+  opacity: 0.5;
+  background-color: #222;
+  position: absolute;
+  bottom: 0px;
+  width: 100vw;
+  z-index: 2;
+  display: flex;
+  flex-direction: row;
+  border-top: #111 solid 1px;
+}
+
+.footer label {
+  max-height: 20px;
+  align-self: center;
+  margin-right: 20px;
+  margin-left: auto;
+}
+
+.saveButton {
+  cursor: pointer;
+  margin-left: 10px;
+  align-self: center;
+  padding: 5px;
+  border-radius: 5px;
+  border: #999 solid 1px;
+}
+
+.simtext {
+  align-self: center;
+  padding: 5px;
+  margin-left: 20px;
+}
